@@ -59,16 +59,20 @@ for ctx in kind-cluster1 kind-cluster2 kind-cluster3; do
 done
 
 # STEP 4: Install Cilium and clustermesh
-log_step "4/7 Install Cilium 1.18.2 + MCS"
+log_step "4/7 Install Cilium 1.18.2 + MCS (custom CIDRs)"
 for i in 1 2 3; do
   helm repo add cilium https://helm.cilium.io >/dev/null 2>&1 || true
   helm repo update >/dev/null 2>&1 || true
+  POD_CIDR="10.${i}0.0/16"
+  SVC_CIDR="10.${i}1.0/16"
+  # Pass the per-cluster Pod CIDR to Cilium explicitly to avoid defaults
   helm upgrade --install cilium cilium/cilium \
     --version 1.18.2 \
     --namespace kube-system \
     --kube-context kind-cluster$i \
     --set image.pullPolicy=IfNotPresent \
     --set ipam.mode=kubernetes \
+    --set ipv4NativeRoutingCIDR=${POD_CIDR} \
     --set cluster.name=cluster$i \
     --set cluster.id=$i \
     --set clustermesh.useAPIServer=true \
@@ -97,4 +101,3 @@ log_step "7/7 Operator v2 + clusters"
 ./scripts/03-deploy-tidb-cluster-v2.sh
 
 echo "================ SETUP COMPLETE (v2) ================"
-
